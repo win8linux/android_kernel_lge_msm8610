@@ -1510,6 +1510,67 @@ static int akm09911_i2c_check_device(
 
 static int akm_compass_power_set(struct akm_compass_data *data, bool on)
 {
+	int rc = 0;
+
+	if (!on && data->power_enabled) {
+		rc = regulator_disable(data->vdd);
+		if (rc) {
+			dev_err(&data->i2c->dev,
+				"Regulator vdd disable failed rc=%d\n", rc);
+			goto err_vdd_disable;
+		}
+
+		rc = regulator_disable(data->vio);
+		if (rc) {
+			dev_err(&data->i2c->dev,
+				"Regulator vio disable failed rc=%d\n", rc);
+			goto err_vio_disable;
+		}
+		data->power_enabled = false;
+		return rc;
+	} else if (on && !data->power_enabled) {
+		rc = regulator_enable(data->vdd);
+		if (rc) {
+			dev_err(&data->i2c->dev,
+				"Regulator vdd enable failed rc=%d\n", rc);
+			goto err_vdd_enable;
+		}
+
+		rc = regulator_enable(data->vio);
+		if (rc) {
+			dev_err(&data->i2c->dev,
+				"Regulator vio enable failed rc=%d\n", rc);
+			goto err_vio_enable;
+		}
+		data->power_enabled = true;
+
+		/*
+		 * The max time for the power supply rise time is 50ms.
+		 * Use 80ms to make sure it meets the requirements.
+		 */
+		msleep(80);
+		return rc;
+	} else {
+		dev_warn(&data->i2c->dev,
+				"Power on=%d. enabled=%d\n",
+				on, data->power_enabled);
+		return rc;
+	}
+
+err_vio_enable:
+	regulator_disable(data->vio);
+err_vdd_enable:
+	return rc;
+
+err_vio_disable:
+	if (regulator_enable(data->vdd))
+		dev_warn(&data->i2c->dev, "Regulator vdd enable failed\n");
+err_vdd_disable:
+	return rc;
+}
+
+static int akm_compass_power_init(struct akm_compass_data *data, bool on)
+{
 	int rc;
 
 	if (!on) {
@@ -1518,14 +1579,13 @@ static int akm_compass_power_set(struct akm_compass_data *data, bool on)
 				AKM09911_VDD_MAX_UV);
 
 		regulator_put(data->vdd);
-		regulator_disable(data->vdd);
 
 		if (regulator_count_voltages(data->vio) > 0)
 			regulator_set_voltage(data->vio, 0,
 				AKM09911_VIO_MAX_UV);
 
 		regulator_put(data->vio);
-		regulator_disable(data->vio);
+
 	} else {
 		data->vdd = regulator_get(&data->i2c->dev, "akm,sensor_vdd");
 		if (IS_ERR(data->vdd)) {
@@ -1546,12 +1606,7 @@ static int akm_compass_power_set(struct akm_compass_data *data, bool on)
 			}
 		}
 
-		rc = regulator_enable(data->vdd);
-		if (rc) {
-			dev_err(&data->i2c->dev,
-				"Regulator enable sensor_vdd failed rc=%d\n", rc);
-			goto reg_vdd_put;
-		}
+
 		data->vio = regulator_get(&data->i2c->dev, "akm,sensor_vcc_i2c");
 		if (IS_ERR(data->vio)) {
 			rc = PTR_ERR(data->vio);
@@ -1569,20 +1624,7 @@ static int akm_compass_power_set(struct akm_compass_data *data, bool on)
 				goto reg_vio_put;
 			}
 		}
-		rc = regulator_enable(data->vio);
-		if (rc) {
-				dev_err(&data->i2c->dev,
-				"Regulator enable sensor_vcc failed rc=%d\n", rc);
-				goto reg_vio_put;
-		}
 	}
-
-	/*
-	 * The max time for the power supply rise time is 50ms.
-	 * Use 80ms to make sure it meets the requirements.
-	 */
-
-	msleep(80);
 
 	return 0;
 
@@ -1842,7 +1884,7 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		if (err) {
 			dev_err(&client->dev,
 				"Unable to parse platfrom data err=%d\n", err);
-			return err;
+			goto exit2;
 		}
 	} else {
 		if (client->dev.platform_data) {
@@ -1880,20 +1922,22 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	AKECS_Reset(s_akm, 1);
 
 	/* check connection */
+	err = akm_compass_power_init(s_akm, 1);
+	if (err < 0)
+		goto exit2;
 	err = akm_compass_power_set(s_akm, 1);
 	if (err < 0)
-		goto exit2;
-
+		goto exit3;
 	err = akm09911_i2c_check_device(client);
 	if (err < 0)
-		goto exit2;
+		goto exit4;
 
 	/***** input *****/
 	err = akm_compass_input_init(&s_akm->input);
 	if (err) {
 		dev_err(&client->dev,
 			"%s: input_dev register failed", __func__);
-		goto exit3;
+		goto exit4;
 	}
 	input_set_drvdata(s_akm->input, s_akm);
 
@@ -1914,7 +1958,7 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		if (err < 0) {
 			dev_err(&client->dev,
 				"%s: request irq failed.", __func__);
-			goto exit4;
+			goto exit5;
 		}
 	} else if (s_akm->auto_report) {
 		INIT_DELAYED_WORK(&s_akm->dwork, akm_dev_poll);
@@ -1925,7 +1969,7 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	if (err) {
 		dev_err(&client->dev,
 			"%s: akm_compass_dev register failed", __func__);
-		goto exit5;
+		goto exit6;
 	}
 
 	/***** sysfs *****/
@@ -1933,7 +1977,7 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	if (0 > err) {
 		dev_err(&client->dev,
 			"%s: create sysfs failed.", __func__);
-		goto exit6;
+		goto exit7;
 	}
 
 	s_akm->cdev = sensors_cdev;
@@ -1946,21 +1990,27 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 
 	if (err) {
 		dev_err(&client->dev, "class device create failed: %d\n", err);
-		goto exit6;
+		goto exit8;
 	}
 
 	dev_info(&client->dev, "successfully probed.");
 	return 0;
 
-exit6:
+exit8:
+	remove_sysfs_interfaces(s_akm);
+exit7:
 	misc_deregister(&akm_compass_dev);
-exit5:
+exit6:
 	if (s_akm->irq)
 		free_irq(s_akm->irq, s_akm);
-exit4:
+exit5:
 	input_unregister_device(s_akm->input);
+exit4:
+	akm_compass_power_set(s_akm, 0);
 exit3:
+	akm_compass_power_init(s_akm, 0);
 exit2:
+	kfree(s_akm);
 exit1:
 exit0:
 	return err;
@@ -1970,7 +2020,10 @@ static int akm_compass_remove(struct i2c_client *client)
 {
 	struct akm_compass_data *akm = i2c_get_clientdata(client);
 
-	akm_compass_power_set(akm, 0);
+	if (akm_compass_power_set(akm, 0))
+		dev_err(&client->dev, "power set failed.");
+	if (akm_compass_power_init(akm, 0))
+		dev_err(&client->dev, "power deinit failed.");
 	remove_sysfs_interfaces(akm);
 	if (misc_deregister(&akm_compass_dev) < 0)
 		dev_err(&client->dev, "misc deregister failed.");
