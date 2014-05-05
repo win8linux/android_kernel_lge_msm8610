@@ -46,6 +46,8 @@
 #define AKM_DRDY_TIMEOUT_MS		100
 #define AKM_BASE_NUM			10
 
+#define AKM_IS_MAG_DATA_ENABLED() (akm->enable_flag & (1 << MAG_DATA_FLAG))
+
 /* POWER SUPPLY VOLTAGE RANGE */
 #define AKM09911_VDD_MIN_UV	2400000
 #define AKM09911_VDD_MAX_UV	3600000
@@ -55,6 +57,13 @@
 #define STATUS_ERROR(st)		(((st)&0x19) != 0x01)
 
 #define USE_DEFAULT_PINCTRL_NAME /* Using pinctrl-names value is "default" in DTSi file */
+
+/* Save last device state for power down */
+struct akm_sensor_state {
+	bool power_on;
+	uint8_t mode;
+};
+
 
 struct akm_compass_data {
 	struct i2c_client	*i2c;
@@ -66,6 +75,7 @@ struct akm_compass_data {
 	struct pinctrl_state	*pin_sleep;
 	struct sensors_classdev	cdev;
 	struct delayed_work	dwork;
+	struct mutex		op_mutex;
 
 	wait_queue_head_t	drdy_wq;
 	wait_queue_head_t	open_wq;
@@ -99,6 +109,7 @@ struct akm_compass_data {
 	int	auto_report;
 	struct regulator	*vdd;
 	struct regulator	*vio;
+	struct akm_sensor_state state;
 };
 
 static struct sensors_classdev sensors_cdev = {
@@ -121,6 +132,7 @@ static struct sensors_classdev sensors_cdev = {
 
 static struct akm_compass_data *s_akm;
 
+static int akm_compass_power_set(struct akm_compass_data *data, bool on);
 /***** I2C I/O function ***********************************************/
 static int akm_i2c_rxdata(
 	struct i2c_client *i2c,
@@ -857,7 +869,7 @@ static void akm_compass_sysfs_update_status(
 static int akm_enable_set(struct sensors_classdev *sensors_cdev,
 		unsigned int enable)
 {
-
+	int ret = 0;
 	struct akm_compass_data *akm = container_of(sensors_cdev,
 			struct akm_compass_data, cdev);
 
@@ -867,20 +879,37 @@ static int akm_enable_set(struct sensors_classdev *sensors_cdev,
 	mutex_unlock(&akm->val_mutex);
 
 	akm_compass_sysfs_update_status(akm);
+	mutex_lock(&akm->op_mutex);
+	if (enable) {
+		ret = akm_compass_power_set(akm, true);
+		if (ret) {
+			dev_err(&akm->i2c->dev,
+				"Fail to power on the device!\n");
+			goto exit;
+		}
 
-	if (akm->auto_report) {
-		if (enable) {
+		if (akm->auto_report) {
 			AKECS_SetMode(akm, AKM_MODE_SNG_MEASURE);
 			schedule_delayed_work(&akm->dwork,
 				(unsigned long)nsecs_to_jiffies64(
 					akm->delay[MAG_DATA_FLAG]));
-		} else {
+		}
+	} else {
+		if (akm->auto_report) {
 			cancel_delayed_work_sync(&akm->dwork);
 			AKECS_SetMode(akm, AKM_MODE_POWERDOWN);
 		}
+		ret = akm_compass_power_set(akm, false);
+		if (ret) {
+			dev_err(&akm->i2c->dev,
+				"Fail to power off the device!\n");
+			goto exit;
+		}
 	}
 
-	return 0;
+exit:
+	mutex_unlock(&akm->op_mutex);
+	return ret;
 }
 
 static ssize_t akm_compass_sysfs_enable_show(
@@ -899,6 +928,7 @@ static ssize_t akm_compass_sysfs_enable_store(
 	struct akm_compass_data *akm, char const *buf, size_t count, int pos)
 {
 	long en = 0;
+	int ret = 0;
 
 	if (NULL == buf)
 		return -EINVAL;
@@ -911,6 +941,13 @@ static ssize_t akm_compass_sysfs_enable_store(
 
 	en = en ? 1 : 0;
 
+	mutex_lock(&akm->op_mutex);
+	ret = akm_compass_power_set(akm, en);
+	if (ret) {
+		dev_err(&akm->i2c->dev,
+			"Fail to configure device power!\n");
+		goto exit;
+	}
 	mutex_lock(&akm->val_mutex);
 	akm->enable_flag &= ~(1<<pos);
 	akm->enable_flag |= ((uint32_t)(en))<<pos;
@@ -918,7 +955,10 @@ static ssize_t akm_compass_sysfs_enable_store(
 
 	akm_compass_sysfs_update_status(akm);
 
-	return count;
+exit:
+	mutex_unlock(&akm->op_mutex);
+
+	return ret ? ret : count;
 }
 
 /***** Acceleration ***/
@@ -1643,29 +1683,55 @@ static int akm_compass_suspend(struct device *dev)
 	int err = 0;
 	struct akm_compass_data *akm = dev_get_drvdata(dev);
 
+	int ret = 0;
+
+	if (AKM_IS_MAG_DATA_ENABLED() && akm->auto_report)
+		cancel_delayed_work_sync(&akm->dwork);
+
+	akm->state.power_on = akm->power_enabled;
+	if (akm->state.power_on)
+		akm_compass_power_set(akm, false);
+
+	ret = pinctrl_select_state(akm->pinctrl, akm->pin_sleep);
+	if (ret)
+		dev_err(dev, "Can't select pinctrl state\n");
 	dev_dbg(&akm->i2c->dev, "suspended\n");
 
-	err = akm_compass_power_set(akm, 0);
-	if(err < 0) {
-		return err;
-	}
-
-	return 0;
+	return ret;
 }
 
 static int akm_compass_resume(struct device *dev)
 {
-	int err = 0;
 	struct akm_compass_data *akm = dev_get_drvdata(dev);
+	int ret = 0;
+
+	ret = pinctrl_select_state(akm->pinctrl, akm->pin_default);
+	if (ret)
+		dev_err(dev, "Can't select pinctrl state\n");
+
+	if (akm->state.power_on) {
+		ret = akm_compass_power_set(akm, true);
+		if (ret) {
+			dev_err(dev, "Sensor power resume fail!\n");
+			goto exit;
+		}
+
+		ret = AKECS_SetMode(akm, akm->state.mode);
+		if (ret) {
+			dev_err(dev, "Sensor state resume fail!\n");
+			goto exit;
+		}
+
+		if (AKM_IS_MAG_DATA_ENABLED() && akm->auto_report)
+			schedule_delayed_work(&akm->dwork,
+				(unsigned long)nsecs_to_jiffies64(
+				akm->delay[MAG_DATA_FLAG]));
+	}
 
 	dev_dbg(&akm->i2c->dev, "resumed\n");
 
-	err = akm_compass_power_set(akm, 1);
-	if(err < 0) {
-		return err;
-	}
-
-	return 0;
+exit:
+	return ret;
 }
 
 #ifdef CONFIG_OF
@@ -1736,7 +1802,7 @@ static int akm_pinctrl_init(struct akm_compass_data *s_akm)
 
 	s_akm->pin_sleep = pinctrl_lookup_state(s_akm->pinctrl, "akm09911_suspend");
 	if (IS_ERR_OR_NULL(s_akm->pin_sleep)) {
-		dev_err(&client->dev, "Failed to look up reset state\n");
+		dev_err(&client->dev, "Failed to look up sleep state\n");
 		return PTR_ERR(s_akm->pin_sleep);
 	}
 
@@ -1867,6 +1933,7 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	mutex_init(&s_akm->sensor_mutex);
 	mutex_init(&s_akm->accel_mutex);
 	mutex_init(&s_akm->val_mutex);
+	mutex_init(&s_akm->op_mutex);
 
 	atomic_set(&s_akm->active, 0);
 	atomic_set(&s_akm->drdy, 0);
@@ -1995,6 +2062,8 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		dev_err(&client->dev, "class device create failed: %d\n", err);
 		goto exit8;
 	}
+
+	akm_compass_power_set(s_akm, false);
 
 	dev_info(&client->dev, "successfully probed.");
 	return 0;
