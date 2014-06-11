@@ -1826,7 +1826,7 @@ static void akm_dev_poll(struct work_struct *work)
 		goto exit;
 	}
 
-	tmp = dat_buf[0] | dat_buf[7];
+	tmp = dat_buf[0] | dat_buf[8];
 	if (STATUS_ERROR(tmp)) {
 		dev_warn(&s_akm->i2c->dev, "Status error(0x%x). Reset...\n",
 			       tmp);
