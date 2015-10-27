@@ -7043,6 +7043,14 @@ VOS_STATUS iw_set_power_params(struct net_device *dev, struct iw_request_info *i
             wrqu->data.length,
             extra);
 
+  if (!capable(CAP_NET_ADMIN))
+  {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                FL("permission check failed"));
+      return -EPERM;
+  }
+
+
   if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
   {
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
