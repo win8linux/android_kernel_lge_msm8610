@@ -3706,10 +3706,10 @@ static VOS_STATUS hdd_parse_ccx_beacon_req(tANI_U8 *pValue,
     v = kstrtos32(buf, 10, &tempInt);
     if ( v < 0) return -EINVAL;
 
+    tempInt = VOS_MIN(tempInt, SIR_ESE_MAX_MEAS_IE_REQS);
     pCcxBcnReq->numBcnReqIe = tempInt;
 
-    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-               "Number of Bcn Req Ie fields(%d)", pCcxBcnReq->numBcnReqIe);
+    hddLog(LOG1, "Number of Bcn Req Ie fields: %d", pCcxBcnReq->numBcnReqIe);
 
     for (j = 0; j < (pCcxBcnReq->numBcnReqIe); j++)
     {
