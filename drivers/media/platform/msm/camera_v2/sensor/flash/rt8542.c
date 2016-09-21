@@ -251,8 +251,8 @@ void rt8542_backlight_on(int level)
 		rt8542_hw_reset();
 		rt8542_write_reg(main_rt8542_dev->client, 0x05, 0x04);
 
-		/*  OVP(32V), MAX BLED(15.4mA), OCP(1.0A), Boost Frequency(500khz) */
-		rt8542_write_reg(main_rt8542_dev->client, 0x02, 0x53);
+		/*  OVP(32V), MAX BLED(12.1mA), OCP(1.0A), Boost Frequency(500khz) */
+		rt8542_write_reg(main_rt8542_dev->client, 0x02, 0x52);
 		/* LGE_CHANGE_S, yt.jeon@lge.com, To fix an issue of flash widget 2013-10-30*/ 
 		bl_ctrl = 0;
 		rt8542_read_reg(main_rt8542_dev->client, 0x0A, &bl_ctrl);
@@ -298,6 +298,9 @@ void rt8542_led_enable(void){
 	mutex_lock(&main_rt8542_dev->bl_mutex);
 	if (gpio_get_value(gpio) != 1) {
 		gpio_direction_output(gpio, 1);
+		if (backlight_status == POWER_OFF) {/* LGE_CHANGE, gangsu.baek@lge.com, If display turn off, set backlight brightness 0x00*/
+			rt8542_write_reg(main_rt8542_dev->client, 0x05, 0x00);
+		}
 		mdelay(10);
 		pr_err("%s: ON!\n", __func__);
 	}

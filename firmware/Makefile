@@ -26,6 +26,26 @@ fw-shipped- += acenic/tg1.bin
 else
 acenic-objs := acenic/tg1.bin acenic/tg2.bin
 endif
+
+ifdef CONFIG_TOUCHSCREEN_LGE_AIT_MELFAS
+ifdef CONFIG_MACH_MSM8X10_L70P
+ait_fw_file := $(wildcard $(srctree)/firmware/melfas/mit200/l70p/*.fw)
+$(foreach var, $(ait_fw_file),  $(shell objcopy -I binary -O ihex $(var) $(var).ihex))
+
+ait_fw_list := $(subst .ihex, , $(notdir $(wildcard $(srctree)/firmware/melfas/mit200/l70p/*.ihex)))
+ait_fw_files := $(foreach var, $(ait_fw_list), melfas/mit200/l70p/$(var))
+fw-shipped-$(CONFIG_TOUCHSCREEN_LGE_AIT_MELFAS) += $(ait_fw_files)
+else
+ait_limit_txt := $(wildcard $(srctree)/firmware/melfas/mit200/*.txt)
+$(shell objcopy -I binary -O ihex $(ait_limit_txt) $(ait_limit_txt).ihex)
+ait_fw_file := $(wildcard $(srctree)/firmware/melfas/mit200/*.fw)
+$(foreach var, $(ait_fw_file),  $(shell objcopy -I binary -O ihex $(var) $(var).ihex))
+
+ait_fw_list := $(subst .ihex, , $(notdir $(wildcard $(srctree)/firmware/melfas/mit200/*.ihex)))
+ait_fw_files := $(foreach var, $(ait_fw_list), melfas/mit200/$(var))
+fw-shipped-$(CONFIG_TOUCHSCREEN_LGE_AIT_MELFAS) += $(ait_fw_files)
+endif
+endif
 fw-shipped-$(CONFIG_3C359) += 3com/3C359.bin
 fw-shipped-$(CONFIG_ACENIC) += $(acenic-objs)
 fw-shipped-$(CONFIG_ADAPTEC_STARFIRE) += adaptec/starfire_rx.bin \

@@ -2586,9 +2586,6 @@ static const struct i2c_device_id hi707_i2c_id[] = {
 static struct msm_camera_i2c_reg_conf hi707_reg_7fps_fixed[] = {
 	//Fixed 7fps
 	
-#if defined(CONFIG_MACH_MSM8926_VFP_KR)
-	//No need to set 7fps since vt-mode recommended setting is 7fps and only SKT model uses 7fps setting.
-#else
 {0x03, 0x00},
 {0x09, 0x01}, //SLEEP ON
 
@@ -2643,7 +2640,6 @@ static struct msm_camera_i2c_reg_conf hi707_reg_7fps_fixed[] = {
 
 {0x03, 0x00},
 {0x09, 0x00}, //SLEEP off
-#endif
 };
 
 static struct msm_camera_i2c_reg_conf hi707_reg_10fps_fixed[] = {
@@ -2651,7 +2647,7 @@ static struct msm_camera_i2c_reg_conf hi707_reg_10fps_fixed[] = {
 	
 	{0x03, 0x00},
 	{0x09, 0x01}, //SLEEP ON
-	
+
 	{0x03, 0x20}, //page 20
 	{0x10, 0x0c}, //AE OFF
 	{0x18, 0x38},
@@ -2666,6 +2662,7 @@ static struct msm_camera_i2c_reg_conf hi707_reg_10fps_fixed[] = {
 	{0x03, 0x20}, //Page 20
 	{0x2a, 0xf0}, 
 	{0x2b, 0x35}, 
+
 #if defined(CONFIG_MACH_MSM8926_VFP_KR)
 	{0x83, 0x00}, //EXP Normal 30.00 fps
 	{0x84, 0xc3},
@@ -2905,6 +2902,7 @@ static int __init hi707_init_module(void)
 {
 	int32_t rc;
 	pr_info("%s:%d\n", __func__, __LINE__);
+
 	// LGE_CHANGE_S, jongkwon.chae, 2014.05.29, To separate power settings depending on HW revisions.
 #if defined(CONFIG_MACH_MSM8926_E2_SPR_US)
 		switch(lge_get_board_revno()) {
@@ -2977,14 +2975,13 @@ int32_t hi707_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 		pr_err("msm_sensor_match_id chip id doesnot match\n");
 		return -ENODEV;
 	}
-/*LGE_CHANGE_S, sync with upgraded kernel version, LOS. 2014.11.18. sujeong.kwon*/
 /* LGE_CHANGE_S, Fixes to add product_kor info capabilities for setting Hi707 of kor medel, 2014-03-11, dongsu.bag@lge.com */
-	product_kor = s_ctrl->sensordata->sensor_info->product_kor;
-	pr_err("%s: product_kor - %d", __func__, product_kor);
+	product_kor = s_ctrl->sensordata->sensor_init_params->product_kor;
+	pr_err("%s: product_kor - %d", __func__, product_kor); 
 /* LGE_CHANGE_E, Fixes to add product_kor info capabilities for setting Hi707 of kor medel, 2014-03-11, dongsu.bag@lge.com */
 /* LGE_CHANGE_S, Fix for Dual Camera Module of HI707, 2014-02-28, dongsu.bag@lge.com */
-	maker_gpio = s_ctrl->sensordata->sensor_info->maker_gpio;
-	pr_err("%s: maker gpio - %d", __func__, maker_gpio);
+	maker_gpio = s_ctrl->sensordata->sensor_init_params->maker_gpio;
+	pr_err("%s: maker gpio - %d", __func__, maker_gpio); 
 	if( maker_gpio >= 0 ){
 	 	if(gpio_is_valid(maker_gpio)){
 			 if(gpio_request(maker_gpio, "vt_cam_id") == 0){
@@ -2997,8 +2994,6 @@ int32_t hi707_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 			 }else pr_err("Invalid gpio %d\n", maker_gpio);
 			}
 /* LGE_CHANGE_E, Fix for Dual Camera Module of HI707, 2014-03-04, dongsu.bag@lge.com */
-/*LGE_CHANGE_E, sync with upgraded kernel version, LOS. 2014.11.18. sujeong.kwon*/
-
 	return rc;
 
 }
@@ -3416,16 +3411,6 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		for (i = 0; i < SUB_MODULE_MAX; i++)
 			cdata->cfg.sensor_info.subdev_id[i] =
 				s_ctrl->sensordata->sensor_info->subdev_id[i];
-/*LGE_CHANGE_S, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
-		cdata->cfg.sensor_info.is_mount_angle_valid =
-			s_ctrl->sensordata->sensor_info->is_mount_angle_valid;
-		cdata->cfg.sensor_info.sensor_mount_angle =
-			s_ctrl->sensordata->sensor_info->sensor_mount_angle;
-		cdata->cfg.sensor_info.position =
-			s_ctrl->sensordata->sensor_info->position;
-		cdata->cfg.sensor_info.modes_supported =
-			s_ctrl->sensordata->sensor_info->modes_supported;
-/*LGE_CHANGE_E, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
 		CDBG("%s:%d sensor name %s\n", __func__, __LINE__,
 			cdata->cfg.sensor_info.sensor_name);
 		CDBG("%s:%d session id %d\n", __func__, __LINE__,
@@ -3433,11 +3418,6 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		for (i = 0; i < SUB_MODULE_MAX; i++)
 			CDBG("%s:%d subdev_id[%d] %d\n", __func__, __LINE__, i,
 				cdata->cfg.sensor_info.subdev_id[i]);
-/*LGE_CHANGE_S, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
-		CDBG("%s:%d mount angle valid %d value %d\n", __func__,
-			__LINE__, cdata->cfg.sensor_info.is_mount_angle_valid,
-			cdata->cfg.sensor_info.sensor_mount_angle);
-/*LGE_CHANGE_E, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
 
 		break;
 	case CFG_SET_INIT_SETTING:
@@ -3490,20 +3470,8 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		CDBG("START_STREAM X\n");
 		break;
 	case CFG_GET_SENSOR_INIT_PARAMS:
-/*LGE_CHANGE_S, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
-#if 0
 		cdata->cfg.sensor_init_params =
 			*s_ctrl->sensordata->sensor_init_params;
-#else
-		cdata->cfg.sensor_init_params.modes_supported =
-			s_ctrl->sensordata->sensor_info->modes_supported;
-		cdata->cfg.sensor_init_params.position =
-			s_ctrl->sensordata->sensor_info->position;
-		cdata->cfg.sensor_init_params.sensor_mount_angle =
-			s_ctrl->sensordata->sensor_info->sensor_mount_angle;
-#endif
-/*LGE_CHANGE_S, sync with upgraded kernel version. 2014.11.18. sujeong.kwon*/
-
 		CDBG("%s:%d init params mode %d pos %d mount %d\n", __func__,
 			__LINE__,
 			cdata->cfg.sensor_init_params.modes_supported,
@@ -3669,7 +3637,7 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		size = conf_array.size;		//size for write(page_mode) and read
 		read_data_size = size - 1;	//size for read
 
-		CDBG("[WX] %s: size : %d rsize : %d\n", __func__, size, read_data_size);
+		pr_err("[WX] %s: size : %d rsize : %d\n", __func__, size, read_data_size);
 
 		if (!size || !read_data_size) {
 			pr_err("%s:%d failed\n", __func__, __LINE__);
@@ -3717,7 +3685,7 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 			}
 			else{
 				rc = s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_read(s_ctrl->sensor_i2c_client, conf_array.reg_setting->reg_addr, read_data, conf_array.data_type);
-				CDBG("[WX] %s read_data : %d\n", __func__, *read_data);
+				pr_err("[WX] %s read_data : %d\n", __func__, *read_data);
 				read_data++;
 			}
 			conf_array.reg_setting++;
@@ -3738,7 +3706,7 @@ int32_t hi707_sensor_config(struct msm_sensor_ctrl_t *s_ctrl,
 		read_data = NULL;
 		read_data_head = NULL;
 
-		CDBG("[WX] %s done\n", __func__);
+		pr_err("[WX] %s done\n", __func__);
 
 		break;
 	}

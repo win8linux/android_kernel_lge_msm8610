@@ -59,6 +59,9 @@ int cradle_smart_cover_status(void)
 #endif
 
 static struct input_dev  *cradle_input;
+#if defined(CONFIG_MACH_MSM8X10_L70P)
+int cradle_state;
+#endif
 
 static void boot_cradle_det_func(void)
 {
@@ -73,7 +76,12 @@ static void boot_cradle_det_func(void)
         state = SMARTCOVER_POUCH_CLOSED;
     else
         state = SMARTCOVER_POUCH_OPENED;
-
+#if defined(CONFIG_MACH_MSM8X10_L70P)
+    if(cradle->pouch == 1)
+        cradle_state = 1;
+    else
+        cradle_state = 0;
+#endif
 	printk("%s : [Cradle] boot cradle value is %d\n", __func__ , state);
 
 	cradle->state = state;
@@ -104,6 +112,16 @@ static void pm8xxx_pouch_work_func(struct work_struct *work)
         state = SMARTCOVER_POUCH_OPENED;
 
     if (cradle->state != state) {
+#if defined(CONFIG_MACH_MSM8X10_L70P)
+                if(state == SMARTCOVER_POUCH_CLOSED){
+                    printk(KERN_INFO"Cradle DSV On : 1");
+			 cradle_state = 1;
+                }
+                else if(state == SMARTCOVER_POUCH_OPENED){
+                    printk(KERN_INFO"Cradle DSV Off : 0");
+			 cradle_state = 0;
+                }		   
+#endif 
 		cradle->state = state;
 		spin_unlock_irqrestore(&cradle->lock, flags);
 		wake_lock_timeout(&cradle->wake_lock, msecs_to_jiffies(3000));

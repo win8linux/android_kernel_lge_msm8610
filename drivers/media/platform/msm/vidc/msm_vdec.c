@@ -103,6 +103,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 		),
 		.qmenu = mpeg_video_stream_format,
 		.step = 0,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_OUTPUT_ORDER,
@@ -117,6 +118,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 			),
 		.qmenu = mpeg_video_output_order,
 		.step = 0,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_ENABLE_PICTURE_TYPE,
@@ -128,6 +130,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 		.step = 1,
 		.menu_skip_mask = 0,
 		.qmenu = NULL,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_KEEP_ASPECT_RATIO,
@@ -139,6 +142,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 		.step = 1,
 		.menu_skip_mask = 0,
 		.qmenu = NULL,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_POST_LOOP_DEBLOCKER_MODE,
@@ -150,6 +154,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 		.step = 1,
 		.menu_skip_mask = 0,
 		.qmenu = NULL,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_DIVX_FORMAT,
@@ -165,6 +170,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 			),
 		.qmenu = mpeg_video_vidc_divx_format,
 		.step = 0,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_MB_ERROR_MAP_REPORTING,
@@ -176,6 +182,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 		.step = 1,
 		.menu_skip_mask = 0,
 		.qmenu = NULL,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_CONTINUE_DATA_TRANSFER,
@@ -187,6 +194,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 		.step = 1,
 		.menu_skip_mask = 0,
 		.qmenu = NULL,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_SYNC_FRAME_DECODE,
@@ -206,6 +214,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 		.step = 0,
 		.menu_skip_mask = 0,
 		.qmenu = NULL,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_EXTRADATA,
@@ -225,6 +234,8 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_FRAME_RATE) |
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_PANSCAN_WINDOW) |
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_RECOVERY_POINT_SEI) |
+			(1 << V4L2_MPEG_VIDC_EXTRADATA_CLOSED_CAPTION_UD) |
+			(1 << V4L2_MPEG_VIDC_EXTRADATA_AFD_UD) |
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_MULTISLICE_INFO) |
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_NUM_CONCEALED_MB) |
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_METADATA_FILLER) |
@@ -266,6 +277,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 			),
 		.qmenu = mpeg_vidc_video_alloc_mode_type,
 		.step = 0,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_ALLOC_MODE_OUTPUT,
@@ -281,6 +293,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 			),
 		.qmenu = mpeg_vidc_video_alloc_mode_type,
 		.step = 0,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_FRAME_ASSEMBLY,
@@ -292,6 +305,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 		.step = 1,
 		.menu_skip_mask = 0,
 		.qmenu = NULL,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_STREAM_OUTPUT_MODE,
@@ -307,6 +321,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 		.menu_skip_mask = 0,
 		.step = 1,
 		.qmenu = NULL,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_CONCEAL_COLOR,
@@ -316,6 +331,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 		.maximum = 0xffffff,
 		.default_value = DEFAULT_VIDEO_CONCEAL_COLOR_BLACK,
 		.step = 1,
+		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_BUFFER_SIZE_LIMIT,
@@ -941,8 +957,9 @@ int msm_vdec_s_parm(struct msm_vidc_inst *inst, struct v4l2_streamparm *a)
 		dprintk(VIDC_PROF, "reported fps changed for %p: %d->%d\n",
 				inst, inst->prop.fps, fps);
 		inst->prop.fps = fps;
-
+		mutex_lock(&inst->core->sync_lock);
 		msm_comm_scale_clocks_and_bus(inst);
+		mutex_unlock(&inst->core->sync_lock);
 	}
 exit:
 	return rc;
@@ -1291,8 +1308,9 @@ static inline int start_streaming(struct msm_vidc_inst *inst)
 			goto fail_start;
 		}
 	}
-
+	mutex_lock(&inst->core->sync_lock);
 	msm_comm_scale_clocks_and_bus(inst);
+	mutex_unlock(&inst->core->sync_lock);
 
 	rc = msm_comm_try_state(inst, MSM_VIDC_START_DONE);
 	if (rc) {
@@ -1399,7 +1417,9 @@ static int msm_vdec_stop_streaming(struct vb2_queue *q)
 		break;
 	}
 
+	mutex_lock(&inst->core->sync_lock);
 	msm_comm_scale_clocks_and_bus(inst);
+	mutex_unlock(&inst->core->sync_lock);
 
 	if (rc)
 		dprintk(VIDC_ERR,
