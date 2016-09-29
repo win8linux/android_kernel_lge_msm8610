@@ -202,7 +202,7 @@ struct msm_vidc_core_capability {
 
 struct msm_vidc_core {
 	struct list_head list;
-	struct mutex sync_lock, lock;
+	struct mutex lock;
 	int id;
 	void *device;
 	struct msm_video_device vdev[MSM_VIDC_MAX_DEVICES];
@@ -275,8 +275,6 @@ struct msm_vidc_ctrl {
 	u32 step;
 	u32 menu_skip_mask;
 	const char * const *qmenu;
-	u32 cluster;
-	struct v4l2_ctrl *priv;
 };
 
 void handle_cmd_response(enum command_response cmd, void *data);
