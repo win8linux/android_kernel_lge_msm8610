@@ -657,8 +657,6 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_FRAME_RATE) |
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_PANSCAN_WINDOW) |
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_RECOVERY_POINT_SEI) |
-			(1 << V4L2_MPEG_VIDC_EXTRADATA_CLOSED_CAPTION_UD) |
-			(1 << V4L2_MPEG_VIDC_EXTRADATA_AFD_UD) |
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_MULTISLICE_INFO) |
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_NUM_CONCEALED_MB) |
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_METADATA_FILLER) |
@@ -2778,16 +2776,8 @@ int msm_venc_g_fmt(struct msm_vidc_inst *inst, struct v4l2_format *f)
 				buff_req_buffer->buffer_size : 0;
 		}
 		for (i = 0; i < fmt->num_planes; ++i) {
-			if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-				inst->bufq[OUTPUT_PORT].vb2_bufq.
-				plane_sizes[i] =
-				f->fmt.pix_mp.plane_fmt[i].sizeimage;
-			} else if (f->type ==
-				V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-				inst->bufq[CAPTURE_PORT].vb2_bufq.
-				plane_sizes[i] =
-				f->fmt.pix_mp.plane_fmt[i].sizeimage;
-			}
+			inst->bufq[CAPTURE_PORT].vb2_bufq.plane_sizes[i] =
+			f->fmt.pix_mp.plane_fmt[i].sizeimage;
 		}
 	} else {
 		dprintk(VIDC_ERR,
