@@ -3118,6 +3118,39 @@ static ssize_t lpwg_reason_store(struct lge_touch_data *ts, const char *buf, siz
 	return count;
 }
 
+/* 
+ * Sysfs Patch:Implement simple Tap to Wake enable (dt2w_enable) node to use native MarshMallow Tap to Wake feature.
+ */
+static ssize_t store_double_tap(struct lge_touch_data *ts, const char *buf, size_t count) 
+{
+	int value[1] = {0};
+	sscanf(buf, "%d", &value[0]);
+
+	switch(value[0]) {
+		case 0:
+			ts->pdata->lpwg_mode = 0;
+			break;
+		case 1:
+			ts->pdata->lpwg_mode = 1;
+		default:
+			break;					
+	}
+
+	return count;
+}
+
+static ssize_t show_double_tap(struct lge_touch_data *ts, char *buf)
+{
+	int count = 0;
+	char c = 0;
+
+	c = ts->pdata->lpwg_mode ? '1' : '0';
+	count = sprintf(buf, "%c\n", c);
+
+	return count;
+}
+
+
 static LGE_TOUCH_ATTR(fw_force_upgrade, S_IRUGO | S_IWUSR, fw_force_upgrade_show, fw_force_upgrade_store);
 static LGE_TOUCH_ATTR(fw_upgrade, S_IRUGO | S_IWUSR, fw_normal_upgrade_show, fw_normal_upgrade_store);
 static LGE_TOUCH_ATTR(fw_dump, S_IRUGO | S_IWUSR, fw_dump_show, NULL);
@@ -3134,6 +3167,7 @@ static LGE_TOUCH_ATTR(sensing_block_off, S_IRUGO | S_IWUSR, sensing_off_show, se
 static LGE_TOUCH_ATTR(lpwg, S_IRUGO | S_IWUSR, lpwg_show, lpwg_store);
 static LGE_TOUCH_ATTR(crack_status, S_IRUGO | S_IWUSR, window_crack_status_show, window_crack_status_store);
 static LGE_TOUCH_ATTR(lpwg_notify, S_IRUGO | S_IWUSR, NULL, lpwg_notify_store);
+static LGE_TOUCH_ATTR(dt2w_enable, S_IRUGO | S_IWUSR, show_double_tap, store_double_tap);
 static LGE_TOUCH_ATTR(lpwg_data, S_IRUGO | S_IWUSR, lpwg_data_show, lpwg_data_store);
 static LGE_TOUCH_ATTR(keyguard, S_IRUGO | S_IWUSR, NULL, keyguard_info_store);
 static LGE_TOUCH_ATTR(reg_control, S_IRUGO | S_IWUSR, NULL, reg_control_store);
@@ -3164,6 +3198,7 @@ static struct attribute *lge_touch_attribute_list[] = {
 	&lge_touch_attr_lpwg.attr,
 	&lge_touch_attr_lpwg_data.attr,
 	&lge_touch_attr_lpwg_notify.attr,
+	&lge_touch_attr_dt2w_enable.attr,
 	&lge_touch_attr_crack_status.attr,
 	&lge_touch_attr_keyguard.attr,
 	&lge_touch_attr_reg_control.attr,
