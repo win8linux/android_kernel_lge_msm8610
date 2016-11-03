@@ -19,10 +19,12 @@
 			reg = <0x28>;
 			interrupt-parent = <&msmgpio>;
 			interrupts = <99 0x2>;
-			enable-gpios = <&msmgpio 71 0x00>;
-			firmware-gpios = <&msmgpio 70 0x00>;
-			interrupt-gpios= <&msmgpio 99 0x00>;
-			i2c-pull-up = <1>;
+			nxp,gpio_scl = <&msmgpio 5 0x00>;
+			nxp,gpio_sda = <&msmgpio 4 0x00>;
+			nxp,gpio_ven = <&msmgpio 71 0x00>;
+			nxp,gpio_mode = <&msmgpio 70 0x00>;
+			nxp,gpio_irq = <&msmgpio 99 0x00>;
+			nxp,i2c-pull-up = <1>;
 		};
 	};
 /* LGE_CHANGE_E, [NFC][seunghoon65.lee@lge.com], NFC Bring up l70p */
