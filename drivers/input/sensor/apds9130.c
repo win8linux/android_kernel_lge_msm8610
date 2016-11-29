@@ -797,7 +797,7 @@ static void apds9130_change_ps_threshold(struct i2c_client *client)
 {
 	struct apds9130_data *data = i2c_get_clientdata(client);
 
-	apds9130_set_pers(client, APDS9130_PPERS_2 | APDS9930_APERS_2);	/*sh.kim, set PS7persistence 3 */
+	apds9130_set_pers(client, APDS9130_PPERS_1 | APDS9930_APERS_2);	/*sh.kim, set PS7persistence 3 */
 	/* repeat this because of the first interrupt forced */
 
 	if ((data->ps_sat & 0x40) == 0x40 ) {
@@ -867,7 +867,7 @@ static void apds9930_change_als_threshold(struct i2c_client *client)
 	struct apds9130_data *data = i2c_get_clientdata(client);
 	int v;
 
-	apds9130_set_pers(client, APDS9130_PPERS_2 | APDS9930_APERS_2);	/*sh.kim, set PS7persistence 3 */
+	apds9130_set_pers(client, APDS9130_PPERS_1 | APDS9930_APERS_2);	/*sh.kim, set PS7persistence 3 */
 	/* repeat this because of the first interrupt forced */
 
 	data->als_cdata0 =	i2c_smbus_read_word_data(client,
