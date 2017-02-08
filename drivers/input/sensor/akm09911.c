@@ -1680,9 +1680,7 @@ reg_vdd_put:
 
 static int akm_compass_suspend(struct device *dev)
 {
-	int err = 0;
 	struct akm_compass_data *akm = dev_get_drvdata(dev);
-
 	int ret = 0;
 
 	if (AKM_IS_MAG_DATA_ENABLED() && akm->auto_report)
@@ -1690,11 +1688,10 @@ static int akm_compass_suspend(struct device *dev)
 
 	akm->state.power_on = akm->power_enabled;
 	if (akm->state.power_on)
-		akm_compass_power_set(akm, false);
-
-	ret = pinctrl_select_state(akm->pinctrl, akm->pin_sleep);
-	if (ret)
+		ret = akm_compass_power_set(akm, false);
+	if (ret) 
 		dev_err(dev, "Can't select pinctrl state\n");
+	
 	dev_dbg(&akm->i2c->dev, "suspended\n");
 
 	return ret;
@@ -1705,9 +1702,6 @@ static int akm_compass_resume(struct device *dev)
 	struct akm_compass_data *akm = dev_get_drvdata(dev);
 	int ret = 0;
 
-	ret = pinctrl_select_state(akm->pinctrl, akm->pin_default);
-	if (ret)
-		dev_err(dev, "Can't select pinctrl state\n");
 
 	if (akm->state.power_on) {
 		ret = akm_compass_power_set(akm, true);
