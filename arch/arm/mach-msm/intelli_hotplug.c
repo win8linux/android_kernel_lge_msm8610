@@ -29,15 +29,14 @@
 #define INTELLI_PLUG_MAJOR_VERSION	5
 #define INTELLI_PLUG_MINOR_VERSION	1
 
-#define DEF_SAMPLING_MS			500
+#define DEF_SAMPLING_MS			850
 #define RESUME_SAMPLING_MS		HZ / 10
 #define START_DELAY_MS			HZ * 20
-#define MIN_INPUT_INTERVAL		150 * 1000L
 #define DEFAULT_MIN_CPUS_ONLINE		1
 #define DEFAULT_MAX_CPUS_ONLINE		NR_CPUS
 #define DEFAULT_NR_FSHIFT		DEFAULT_MAX_CPUS_ONLINE - 1
-#define DEFAULT_DOWN_LOCK_DUR		2500
-#define DEFAULT_SUSPEND_DEFER_TIME	10
+#define DEFAULT_DOWN_LOCK_DUR		4000
+#define DEFAULT_SUSPEND_DEFER_TIME	1
 #define DEFAULT_MAX_CPUS_ONLINE_SUSP	1
 
 #define CAPACITY_RESERVE		50
@@ -53,7 +52,7 @@ defined (CONFIG_ARCH_MSM8610) || defined (CONFIG_ARCH_MSM8228)
 #define THREAD_CAPACITY			(250 - CAPACITY_RESERVE)
 #endif
 #define CPU_NR_THRESHOLD		((THREAD_CAPACITY << 1) + (THREAD_CAPACITY / 2))
-#define MULT_FACTOR			4
+#define MULT_FACTOR			8
 #define DIV_FACTOR			100000
 
 
@@ -61,7 +60,6 @@ defined (CONFIG_ARCH_MSM8610) || defined (CONFIG_ARCH_MSM8228)
 static struct delayed_work intelli_plug_work;
 static struct work_struct up_down_work;
 static struct workqueue_struct *intelliplug_wq;
-static struct workqueue_struct *susp_wq;
 static struct delayed_work suspend_work;
 static struct work_struct resume_work;
 static struct mutex intelli_plug_mutex;
