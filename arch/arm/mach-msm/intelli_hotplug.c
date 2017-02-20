@@ -296,8 +296,7 @@ static void intelli_plug_suspend(struct work_struct *work)
 		full_mode_profile != 3)
 		return;
 
-	/* Flush hotplug workqueue */
-	flush_workqueue(intelliplug_wq);
+	/* Cancel intelli_plug_work */
 	cancel_delayed_work_sync(&intelli_plug_work);
 
 	/* Put all sibling cores to sleep */
