@@ -1888,6 +1888,7 @@ static void akm_dev_poll(struct work_struct *work)
 	input_report_abs(akm->input, ABS_Y, mag_y);
 	input_report_abs(akm->input, ABS_Z, mag_z);
 	input_report_abs(akm->input, ABS_MISC, 3);
+	input_sync(akm->input);
 exit:
 	ret = AKECS_SetMode(akm, AKM_MODE_SNG_MEASURE);
 	if (ret < 0)
