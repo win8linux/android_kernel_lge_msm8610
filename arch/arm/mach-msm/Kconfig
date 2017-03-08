@@ -3075,5 +3075,13 @@ config INTELLI_HOTPLUG
 	help
 	  An intelligent cpu hotplug driver for
 	  Low Latency Frequency Transition capable processors.
+
+config SIMPLE_HOTPLUG
+	bool "Simple CPU hotplug daemon"
+	depends on HOTPLUG_CPU
+	default n
+	help
+	  A simple cpu hotplug daemon which plugs/unplugs cpus based on cpu
+	  frequencies.
  
 endif
