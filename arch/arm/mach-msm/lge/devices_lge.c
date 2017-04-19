@@ -35,6 +35,10 @@
 #ifdef CONFIG_USB_G_LGE_ANDROID
 #include <linux/platform_data/lge_android_usb.h>
 #endif
+#ifdef CONFIG_KEXEC_HARDBOOT
+#include <linux/memblock.h>
+#endif
+
 #include <linux/power_supply.h>
 
 static int cn_arr_len = 3;
@@ -239,6 +243,21 @@ void __init lge_add_persist_ram_devices(void)
 
 void __init lge_reserve(void)
 {
+#ifdef CONFIG_KEXEC_HARDBOOT
+	// Reserve space for hardboot page 
+	int ret;
+	phys_addr_t start;
+	struct membank* bank;
+
+	bank = &meminfo.bank[0];
+	start = bank->start + bank->size - SZ_1M;
+	ret = memblock_remove(start, SZ_1M);
+	if(!ret)
+		pr_info("Hardboot page reserved at 0x%X\n", start);
+	else
+		pr_err("Failed to reserve space for hardboot page at 0x%X!\n", start);
+#endif
+
 #if defined(CONFIG_ANDROID_PERSISTENT_RAM)
 	lge_add_persist_ram_devices();
 #endif
