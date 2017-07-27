@@ -1714,8 +1714,8 @@ static int iw_set_genie(struct net_device *dev,
         if (remLen < eLen) {
             hddLog(LOGE, "Remaining len: %u less than ie len: %u",
                    remLen, eLen);
-            ret = -EINVAL;
-            goto exit;
+            EXIT();
+            return -EINVAL;
         }
 
         switch ( elementId )
