@@ -108,7 +108,7 @@ struct dentry {
 	struct list_head d_child;	/* child of parent list */
 	struct list_head d_subdirs;	/* our children */
 	/*
-	 * d_child and d_rcu can share memory
+	 * d_alias and d_rcu can share memory
 	 */
 	union {
 		struct list_head d_alias;	/* inode alias list */
