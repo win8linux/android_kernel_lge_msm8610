@@ -587,14 +587,14 @@ static int mms_touch_event(struct i2c_client *client, struct touch_data *data, u
 					++data->touch_count_num;
 					if (likely(touch_debug_mask_ & DEBUG_ABS_POINT)) {
 						if (lockscreen_stat == 1) {
-							TOUCH_INFO_MSG("%d finger pressed : <%d> x[XXX] y[XXX] z[XXX]\n",
-							data->touch_count_num, id);
+							//TOUCH_INFO_MSG("%d finger pressed : <%d> x[XXX] y[XXX] z[XXX]\n",
+							//data->touch_count_num, id);
 						} else {
-							TOUCH_INFO_MSG("%d finger pressed : <%d> x[%3d] y[%3d] z[%3d]\n",
-							data->touch_count_num, id,
-							data->curr_data[id].x_position,
-							data->curr_data[id].y_position,
-							data->curr_data[id].pressure);
+							//TOUCH_INFO_MSG("%d finger pressed : <%d> x[%3d] y[%3d] z[%3d]\n",
+							//data->touch_count_num, id,
+							//data->curr_data[id].x_position,
+							//data->curr_data[id].y_position,
+							//data->curr_data[id].pressure);
 						}
 					}
 					data->curr_data[id].point_log_state = 1;
@@ -606,14 +606,14 @@ static int mms_touch_event(struct i2c_client *client, struct touch_data *data, u
 
 					if (likely(touch_debug_mask_ & DEBUG_ABS_POINT)) {
 						if (lockscreen_stat == 1) {
-							TOUCH_INFO_MSG("touch_release[%s] : <%d> x[XXX] y[XXX] M:XX\n",
-							data->palm?"Palm":" ", id);
+							//TOUCH_INFO_MSG("touch_release[%s] : <%d> x[XXX] y[XXX] M:XX\n",
+							//data->palm?"Palm":" ", id);
 						} else {
-							TOUCH_INFO_MSG("touch_release[%s] : <%d> x[%3d] y[%3d] M:%d\n",
-							data->palm?"Palm":" ", id,
-							data->prev_data[id].x_position,
-							data->prev_data[id].y_position,
-							data->curr_data[id].touch_conut);
+							//TOUCH_INFO_MSG("touch_release[%s] : <%d> x[%3d] y[%3d] M:%d\n",
+							//data->palm?"Palm":" ", id,
+							//data->prev_data[id].x_position,
+							//data->prev_data[id].y_position,
+							//data->curr_data[id].touch_conut);
 						}
 					}
 					data->curr_data[id].point_log_state = 0;
